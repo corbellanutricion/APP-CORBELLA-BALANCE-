@@ -20,10 +20,10 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
     // ====== CORBELLA BALANCE · Conexión a Supabase ======
-    // 1) Pega aquí tu Project URL (Supabase -> Project Settings -> API)
-    window.CB_SUPABASE_URL = 'PEGA_AQUI_TU_PROJECT_URL';
-    // 2) Pega aquí tu clave "anon public" (NUNCA la "service_role")
-    window.CB_SUPABASE_KEY = 'PEGA_AQUI_TU_ANON_KEY';
+    // 1) Project URL (Supabase -> Project Settings -> Data API)
+    window.CB_SUPABASE_URL = 'https://uzldrfsejsaqtjmkyyff.supabase.co';
+    // 2) Clave "Publishable key" (NUNCA la "Secret key")
+    window.CB_SUPABASE_KEY = 'sb_publishable_bwTysOo-bqllO5O8yseHfQ_VgUguBlJ';
     window.CB_SUPA = window.supabase.createClient(window.CB_SUPABASE_URL, window.CB_SUPABASE_KEY);
 
     // ====== Módulo 2 · Clientes (helpers sobre Supabase) ======
