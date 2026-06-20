@@ -1,0 +1,26 @@
+{
+  "name": "Corbella Balance",
+  "short_name": "CB Balance",
+  "description": "Tu plataforma de coaching nutricional y entrenamiento",
+  "start_url": "/APP-CORBELLA-BALANCE-/",
+  "scope": "/APP-CORBELLA-BALANCE-/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#064E3B",
+  "theme_color": "#10B981",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "corbella-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "corbella-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
