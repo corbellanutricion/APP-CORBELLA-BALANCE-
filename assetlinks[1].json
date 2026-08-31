@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.corbellanutricion.twa",
+        "sha256_cert_fingerprints": ["9C:A6:ED:F0:09:AE:D0:13:4D:54:BE:49:96:E4:BE:92:07:CA:36:39:2B:D6:9B:3D:01:8D:10:93:E5:67:8C:8C"]
+      }
+    }]
