@@ -634,8 +634,14 @@
         const { error: uploadErr } = await window.CB_SUPA.storage
           .from('food-photos').upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
         if (uploadErr) return { error: uploadErr.message };
-        const { data } = window.CB_SUPA.storage.from('food-photos').getPublicUrl(path);
-        return { error: null, url: data ? data.publicUrl : null };
+        // food-photos es un bucket PRIVADO (son fotos de comida de
+        // pacientes) -- en vez de una URL pública para siempre, generamos
+        // una firmada que expira en 2 minutos, tiempo de sobra para que la
+        // Edge Function la baje una sola vez y la mande a analizar.
+        const { data, error: signErr } = await window.CB_SUPA.storage
+          .from('food-photos').createSignedUrl(path, 120);
+        if (signErr) return { error: signErr.message };
+        return { error: null, url: data ? data.signedUrl : null };
       },
       async analyzeFoodPhoto(imageUrl, hint, _retried) {
         try {

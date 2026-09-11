@@ -20,8 +20,10 @@ const CORS_HEADERS = {
 
 // Solo aceptamos fotos que vivan en nuestro propio bucket de Storage
 // (así nadie puede usar esta función como "analizador gratis" de fotos ajenas).
+// food-photos es un bucket PRIVADO desde 2026-09-11 -- el cliente manda una
+// URL FIRMADA (.../object/sign/food-photos/...), ya no la pública de antes.
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
-const FOOD_PHOTOS_PREFIX = `${SUPABASE_URL}/storage/v1/object/public/food-photos/`;
+const FOOD_PHOTOS_PREFIX = `${SUPABASE_URL}/storage/v1/object/sign/food-photos/`;
 
 const PROMPT = `Eres un asistente de nutrición. Analiza la foto de este platillo y responde
 SOLO con un JSON válido (sin texto adicional, sin markdown), con esta forma exacta:
