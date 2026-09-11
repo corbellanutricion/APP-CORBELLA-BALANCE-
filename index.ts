@@ -101,7 +101,17 @@ serve(async (req) => {
       });
     }
     const imgBuffer = await imgRes.arrayBuffer();
-    const imgBase64 = btoa(String.fromCharCode(...new Uint8Array(imgBuffer)));
+    // Nota: NO usar String.fromCharCode(...new Uint8Array(buf)) -- con una
+    // foto de celular normal (varios MB) revienta el límite de argumentos
+    // del motor de JS ("Maximum call stack size exceeded"). Por eso vamos
+    // por bloques.
+    const imgBytes = new Uint8Array(imgBuffer);
+    let imgBinary = "";
+    const CHUNK_SIZE = 0x8000; // 32768 bytes por bloque -- muy por debajo del límite
+    for (let i = 0; i < imgBytes.length; i += CHUNK_SIZE) {
+      imgBinary += String.fromCharCode(...imgBytes.subarray(i, i + CHUNK_SIZE));
+    }
+    const imgBase64 = btoa(imgBinary);
     const mediaType = imgRes.headers.get("content-type") || "image/jpeg";
 
     const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
