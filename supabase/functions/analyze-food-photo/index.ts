@@ -24,6 +24,39 @@ const CORS_HEADERS = {
 // URL FIRMADA (.../object/sign/food-photos/...), ya no la pública de antes.
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const FOOD_PHOTOS_PREFIX = `${SUPABASE_URL}/storage/v1/object/sign/food-photos/`;
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+
+// Límite de fotos por paciente por día -- cada llamada le cuesta dinero real
+// a la cuenta de Anthropic, esto evita que una sola cuenta (por error o mal
+// uso) se acabe el presupuesto. Se resetea a las 00:00 UTC.
+const DAILY_PHOTO_LIMIT = 5;
+
+async function countTodayAnalyses(patientId: string): Promise<number> {
+  const todayStart = new Date().toISOString().slice(0, 10) + "T00:00:00.000Z";
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/food_photo_analyses?patient_id=eq.${patientId}&created_at=gte.${todayStart}&select=id`,
+    { headers: { apikey: SERVICE_ROLE_KEY, Authorization: `Bearer ${SERVICE_ROLE_KEY}` } }
+  );
+  if (!res.ok) return 0; // si esto falla, no le bloqueamos la función al paciente por un problema nuestro
+  const rows = await res.json();
+  return Array.isArray(rows) ? rows.length : 0;
+}
+
+async function recordAnalysisAttempt(patientId: string) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/food_photo_analyses`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        apikey: SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify([{ patient_id: patientId }]),
+    });
+  } catch (_e) {
+    // si el conteo falla, seguimos con el análisis de todos modos
+  }
+}
 
 const PROMPT = `Eres un asistente de nutrición. Analiza la foto de este platillo y responde
 SOLO con un JSON válido (sin texto adicional, sin markdown), con esta forma exacta:
@@ -97,6 +130,17 @@ serve(async (req) => {
       );
     }
 
+    const patientId = userData.user.id;
+    const usedToday = await countTodayAnalyses(patientId);
+    if (usedToday >= DAILY_PHOTO_LIMIT) {
+      return new Response(
+        JSON.stringify({
+          error: `Ya usaste tus ${DAILY_PHOTO_LIMIT} fotos de hoy para registrar comida con IA. Mañana puedes seguir usándolo, o registra esta comida a mano mientras tanto.`,
+        }),
+        { status: 429, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+      );
+    }
+
     // Descargamos la imagen y la mandamos como base64 (la API de Claude
     // acepta imágenes por base64 directamente, evitando problemas de acceso
     // si la URL pública tuviera restricciones).
@@ -120,6 +164,11 @@ serve(async (req) => {
     }
     const imgBase64 = btoa(imgBinary);
     const mediaType = imgRes.headers.get("content-type") || "image/jpeg";
+
+    // Se registra el intento AQUÍ, justo antes de llamar a Claude -- así el
+    // límite refleja uso real de la API (lo que de verdad cuesta dinero),
+    // no fotos que ni siquiera llegaron a analizarse.
+    await recordAnalysisAttempt(patientId);
 
     const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
