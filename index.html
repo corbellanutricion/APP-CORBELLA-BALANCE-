@@ -637,12 +637,41 @@
         const { data } = window.CB_SUPA.storage.from('food-photos').getPublicUrl(path);
         return { error: null, url: data ? data.publicUrl : null };
       },
-      async analyzeFoodPhoto(imageUrl, hint) {
+      async analyzeFoodPhoto(imageUrl, hint, _retried) {
         try {
           const { data, error } = await window.CB_SUPA.functions.invoke('analyze-food-photo', {
             body: { imageUrl, hint: hint || '' }
           });
-          if (error) return { error: error.message || 'No se pudo analizar la foto.' };
+          if (error) {
+            // error.message del SDK siempre dice "Edge Function returned a
+            // non-2xx status code" sin importar la causa real -- hay que leer
+            // el cuerpo de la respuesta (error.context) para saber qué pasó.
+            // Dos formas posibles: la nuestra ({ error: "..." }, cuando el
+            // código de la función corrió) o la de la puerta de Supabase
+            // ({ code, message }, cuando rechaza el JWT ANTES de llegar a
+            // nuestro código -- típico de una sesión que quedó vieja porque
+            // el celular estuvo mucho tiempo en segundo plano).
+            let detail = error.message;
+            let jwtIssue = false;
+            if (error.context && typeof error.context.json === 'function') {
+              try {
+                const body = await error.context.clone().json();
+                if (body && body.error) detail = body.error;
+                else if (body && body.message) {
+                  detail = body.message;
+                  jwtIssue = /jwt|token|auth/i.test(String(body.code || body.message));
+                }
+              } catch (_e) { /* la respuesta no era JSON -- nos quedamos con error.message */ }
+            }
+            // Sesión vieja: refrescamos una vez y reintentamos antes de rendirnos.
+            if (jwtIssue && !_retried) {
+              const { error: refreshErr } = await window.CB_SUPA.auth.refreshSession();
+              if (!refreshErr) return this.analyzeFoodPhoto(imageUrl, hint, true);
+              return { error: 'Tu sesión expiró -- cierra sesión y vuelve a entrar para tomar la foto.' };
+            }
+            if (jwtIssue) return { error: 'Tu sesión expiró -- cierra sesión y vuelve a entrar para tomar la foto.' };
+            return { error: detail || 'No se pudo analizar la foto.' };
+          }
           return { error: null, items: data.items || [], totals: data.totals || null, confidence: data.confidence || null, notes: data.notes || null };
         } catch (e) {
           return { error: e.message || 'No se pudo analizar la foto.' };
