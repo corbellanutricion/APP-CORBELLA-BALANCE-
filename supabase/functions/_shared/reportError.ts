@@ -9,8 +9,8 @@
 // Secrets que usa (los primeros 3 ya existen en el proyecto):
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, WEBHOOK_SECRET
 // Opcional para el correo:
-//   RESEND_API_KEY   (gratis en resend.com, sin dominio propio funciona
-//                      mandando desde onboarding@resend.dev)
+//   RESEND_API_KEY   (cuenta gratis en resend.com -- ya configurada, manda
+//                      desde alertas@corbellabalance.com, dominio verificado)
 //   COACH_ALERT_EMAIL (si no se pone, cae en corbella.nutricion@gmail.com)
 
 const COACH_USER_ID = "29e3fed0-eb0d-4912-b6b2-9a9b6879d399"; // el único coach de la app (ver CB_SELF_MANAGED_COACH_ID)
@@ -71,7 +71,7 @@ export async function reportError(
           Authorization: `Bearer ${RESEND_API_KEY}`,
         },
         body: JSON.stringify({
-          from: "Corbella Balance <onboarding@resend.dev>",
+          from: "Corbella Balance <alertas@corbellabalance.com>",
           to: [COACH_EMAIL],
           subject: `⚠️ Error en ${source} — Corbella Balance`,
           text: `${message}\n\nContexto:\n${JSON.stringify(context ?? {}, null, 2)}\n\nHora: ${new Date().toISOString()}`,
