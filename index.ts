@@ -10,11 +10,17 @@
 //   supabase functions deploy analyze-food-photo
 
 import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Solo aceptamos fotos que vivan en nuestro propio bucket de Storage
+// (así nadie puede usar esta función como "analizador gratis" de fotos ajenas).
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+const FOOD_PHOTOS_PREFIX = `${SUPABASE_URL}/storage/v1/object/public/food-photos/`;
 
 const PROMPT = `Eres un asistente de nutrición. Analiza la foto de este platillo y responde
 SOLO con un JSON válido (sin texto adicional, sin markdown), con esta forma exacta:
@@ -41,9 +47,34 @@ serve(async (req) => {
   }
 
   try {
+    // Debe venir de un usuario logueado de la app (el cliente de Supabase manda
+    // este header automáticamente al usar functions.invoke(...)).
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    if (!token) {
+      return new Response(JSON.stringify({ error: "No autorizado." }), {
+        status: 401,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      });
+    }
+    const supabase = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || "");
+    const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Sesión inválida." }), {
+        status: 401,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      });
+    }
+
     const { imageUrl } = await req.json();
     if (!imageUrl) {
       return new Response(JSON.stringify({ error: "Falta imageUrl" }), {
+        status: 400,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      });
+    }
+    if (!imageUrl.startsWith(FOOD_PHOTOS_PREFIX)) {
+      return new Response(JSON.stringify({ error: "URL de imagen no permitida." }), {
         status: 400,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       });
