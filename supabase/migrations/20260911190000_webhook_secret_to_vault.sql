@@ -1,0 +1,16 @@
+-- Esta migración guardó el WEBHOOK_SECRET en Supabase Vault (nombre del
+-- secreto: 'cb_webhook_secret'). El valor real NO se deja aquí a propósito
+-- -- este repo es público, y el contenido original de este archivo (con el
+-- secreto en texto plano) ya se aplicó y se sobrescribió localmente antes de
+-- comitear nada. Ver 20260911190100_cb_call_send_push_use_vault.sql para
+-- cómo lo lee la función ahora.
+--
+-- Si algún día hace falta rotar el secreto otra vez:
+--   select vault.update_secret(
+--     (select id from vault.secrets where name = 'cb_webhook_secret'),
+--     '<valor nuevo>'
+--   );
+-- y actualizar también el secret WEBHOOK_SECRET de la Edge Function
+-- (supabase secrets set WEBHOOK_SECRET=<mismo valor nuevo>) para que sigan
+-- coincidiendo.
+select 1; -- no-op, ya aplicado -- se deja el archivo solo como registro histórico
