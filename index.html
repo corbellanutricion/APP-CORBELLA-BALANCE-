@@ -629,11 +629,24 @@
       // ====== Registro de comida por foto con IA (requiere ANTHROPIC_API_KEY
       // configurada como secret en la Edge Function "analyze-food-photo" —
       // ver /supabase/functions/analyze-food-photo/index.ts) ======
-      async uploadFoodPhoto(patientId, blob) {
+      async uploadFoodPhoto(patientId, blob, _retried) {
         const path = `${patientId}/${Date.now()}.jpg`;
         const { error: uploadErr } = await window.CB_SUPA.storage
           .from('food-photos').upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
-        if (uploadErr) return { error: uploadErr.message };
+        if (uploadErr) {
+          // Mismo caso que en analyzeFoodPhoto: si el celular estuvo horas
+          // con la app en segundo plano, el token de la sesión ya venció y
+          // el SDK no siempre alcanza a refrescarlo antes de esta llamada.
+          // Antes esto se rendía aquí mismo -- por eso "subir" fallaba aunque
+          // "analizar" ya sabía recuperarse solo. Refrescamos una vez y
+          // reintentamos antes de rendirnos de verdad.
+          const jwtIssue = /jwt|token|expired|unauthorized|401/i.test(uploadErr.message || '');
+          if (jwtIssue && !_retried) {
+            const { error: refreshErr } = await window.CB_SUPA.auth.refreshSession();
+            if (!refreshErr) return this.uploadFoodPhoto(patientId, blob, true);
+          }
+          return { error: jwtIssue ? 'Tu sesión expiró -- cierra sesión y vuelve a entrar para tomar la foto.' : uploadErr.message };
+        }
         // food-photos es un bucket PRIVADO (son fotos de comida de
         // pacientes) -- en vez de una URL pública para siempre, generamos
         // una firmada que expira en 2 minutos, tiempo de sobra para que la
