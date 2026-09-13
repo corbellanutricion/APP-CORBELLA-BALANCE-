@@ -93,7 +93,12 @@ async function patientBelongsToCoach(patientId: string): Promise<boolean> {
     `${SUPABASE_URL}/rest/v1/patients?id=eq.${patientId}&coach_id=eq.${COACH_USER_ID}&select=id`,
     { headers: { apikey: SERVICE_ROLE_KEY, Authorization: `Bearer ${SERVICE_ROLE_KEY}` } }
   );
-  if (!res.ok) return false;
+  if (!res.ok) {
+    // Un permission-denied (falta GRANT) u otro error real de la consulta NO es lo
+    // mismo que "no encontré al paciente" -- si lo tratamos igual, un problema de
+    // permisos se ve exactamente como un typo de patientId, y nadie se entera.
+    throw new Error("No se pudo verificar el paciente: " + (await res.text()));
+  }
   const rows = await res.json();
   return Array.isArray(rows) && rows.length > 0;
 }
