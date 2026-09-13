@@ -75,7 +75,13 @@ self.addEventListener('push', event => {
 // si no, abre una nueva en la URL indicada (ej. directo al chat o al plan actualizado).
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  // La URL que manda el backend es "app-relativa" (ej. '/' = home de la app),
+  // pero la app vive en un subpath (GitHub Pages). Una ruta que empieza con "/"
+  // se resuelve contra el ORIGEN, no contra el subpath -> por eso hacía 404
+  // ("no hay sitio de GitHub Pages aquí"). Se le quita el "/" inicial para
+  // que se resuelva relativa al scope real del service worker.
+  const rawUrl = (event.notification.data && event.notification.data.url) || '/';
+  const targetUrl = new URL(rawUrl.replace(/^\/+/, ''), self.registration.scope).href;
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
