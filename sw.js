@@ -9,7 +9,7 @@
 // la versión de "hace un momento" en vez de la última al segundo -- pero a cambio,
 // abrir la app siempre es instantáneo, sin importar qué tan grande crezca el archivo
 // ni qué tan buena o mala sea la señal en ese momento.
-const CACHE_NAME = 'corbella-balance';
+const CACHE_NAME = 'corbella-balance-v2';
 const PRECACHE_URLS = ['./', './index.html', './supabase.js', './manifest.json', './corbella-icon-192.png', './corbella-icon-512.png'];
 
 self.addEventListener('install', event => {
