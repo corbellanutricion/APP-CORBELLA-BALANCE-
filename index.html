@@ -866,7 +866,7 @@
         const weekIds = (weeks || []).map(w => w.id);
         const { data: days } = weekIds.length ? await window.CB_SUPA.from('program_days').select('id, program_week_id, day_index, name, est_duration_min, warmup, cardio, exercise_budget').in('program_week_id', weekIds).order('day_index') : { data: [] };
         const dayIds = (days || []).map(d => d.id);
-        const { data: exs } = dayIds.length ? await window.CB_SUPA.from('program_exercises').select('id, program_day_id, exercise_id, sets, reps, rir, target_rpe, load, rest_sec, weight_ref, notes, sort, section, pillar, duration_min, combo_type, combo_group, exercises(name, muscle_group, pillar, video_url)').in('program_day_id', dayIds) : { data: [] };
+        const { data: exs } = dayIds.length ? await window.CB_SUPA.from('program_exercises').select('id, program_day_id, exercise_id, sets, reps, rir, target_rpe, load, rest_sec, weight_ref, notes, sort, section, pillar, duration_min, role, combo_type, combo_group, exercises(name, muscle_group, pillar, video_url)').in('program_day_id', dayIds) : { data: [] };
         const { data: logs } = dayIds.length ? await window.CB_SUPA.from('workout_logs').select('program_day_id, week_number').eq('patient_id', patientId) : { data: [] };
         const doneSet = new Set((logs || []).map(l => l.week_number + '-' + l.program_day_id));
         const weeksOut = (weeks || []).map(w => ({
