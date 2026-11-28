@@ -898,8 +898,11 @@
       // desde la ficha ("Pedir que llene su expediente"). No borra la fecha
       // en que se pidió -- así el coach conserva el historial -- solo marca
       // cuándo se llenó, y eso es lo que cierra el candado en la app.
+      // Usa una función de Postgres (no un update directo): así el paciente
+      // solo puede tocar esta columna, nunca el resto de su fila en patients
+      // (ver migración de auditoría de seguridad, 2026-11-28).
       async markExpedienteSubmitted(patientId) {
-        const { error } = await window.CB_SUPA.from('patients').update({ clinical_record_submitted_at: new Date().toISOString() }).eq('id', patientId);
+        const { error } = await window.CB_SUPA.rpc('mark_expediente_submitted');
         return { error: error ? error.message : null };
       },
       async listPrograms(patientId) {
