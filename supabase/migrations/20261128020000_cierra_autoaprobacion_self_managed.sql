@@ -1,0 +1,13 @@
+-- Un paciente "self_managed" podía, a nivel de base de datos, actualizar
+-- CUALQUIER columna de su propia fila en patients -- incluyendo
+-- approval_status, es decir, auto-aprobarse sin que el coach confirmara
+-- el pago. Se confirmó (grep sobre el bundle) que ninguna pantalla actual
+-- de la app depende de esta política: el único lugar que actualiza
+-- patients desde el lado del paciente es el alta inicial (INSERT), no un
+-- UPDATE posterior. Se elimina sin reemplazo -- no hace falta una función
+-- limitada porque no hay ningún caso legítimo de autoservicio que la use
+-- hoy; si en el futuro se agrega una pantalla de "editar mi ficha" para
+-- self_managed, debe construirse con una función que solo toque las
+-- columnas que de verdad corresponden al paciente (como se hizo con
+-- mark_expediente_submitted), nunca con un UPDATE de fila completa.
+drop policy if exists "patients_self_update" on public.patients;
